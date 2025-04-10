@@ -10,9 +10,9 @@ const BrushTypeSelector = ({ brushTypes, selectedBrushType, onSelectBrushType })
   return (
     <View style={styles.container}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {visibleBrushTypes.map((type) => (
+        {visibleBrushTypes.map((type, index) => (
           <TouchableOpacity
-            key={type.id}
+            key={`brush-type-${type.id || index}`}
             style={[
               styles.brushTypeItem,
               selectedBrushType.id === type.id && styles.selectedBrushTypeItem
@@ -24,10 +24,12 @@ const BrushTypeSelector = ({ brushTypes, selectedBrushType, onSelectBrushType })
               size={28} // Büyük ikonlar - çocuklar için
               color={selectedBrushType.id === type.id ? "#FFFFFF" : "#424242"} 
             />
-            <Text style={[
-              styles.brushTypeName,
-              selectedBrushType.id === type.id && styles.selectedBrushTypeName
-            ]}>
+            <Text 
+              style={[
+                styles.brushTypeName,
+                selectedBrushType.id === type.id && styles.selectedBrushTypeName
+              ]}
+            >
               {type.name}
             </Text>
           </TouchableOpacity>

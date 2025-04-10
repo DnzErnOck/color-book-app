@@ -1,12 +1,19 @@
+// src/components/Header.js
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-const Header = ({ title, onMenuPress }) => {
+const Header = ({ title, onMenuPress, onBackPress }) => {
   return (
     <View style={styles.header}>
+      <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
+        <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
+      </TouchableOpacity>
+      
       <Text style={styles.title}>{title}</Text>
-      <TouchableOpacity onPress={onMenuPress} style={styles.menuButton}>
-        <Text style={styles.menuButtonText}>☰</Text>
+      
+      <TouchableOpacity style={styles.menuButton} onPress={onMenuPress}>
+        <Ionicons name="menu" size={28} color="#FFFFFF" />
       </TouchableOpacity>
     </View>
   );
@@ -17,22 +24,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 15,
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#6A2DC9',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: '#5D29AE',
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 22,
+    backgroundColor: '#5D29AE',
   },
   title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: 'white',
+    fontFamily: 'ComicNeue-Bold',
+    fontSize: 24,
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   menuButton: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  menuButtonText: {
-    fontSize: 18,
-    color: 'white',
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 22,
+    backgroundColor: '#5D29AE',
   },
 });
 

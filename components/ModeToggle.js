@@ -1,84 +1,72 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const ModeToggle = ({ isDrawingMode, setIsDrawingMode, resetView }) => {
   return (
-    <View style={styles.modeToggle}>
+    <View style={styles.container}>
       <TouchableOpacity
-        style={[
-          styles.modeButton,
-          isDrawingMode && styles.activeModeButton,
-        ]}
+        style={[styles.modeButton, isDrawingMode && styles.activeModeButton]}
         onPress={() => setIsDrawingMode(true)}
       >
-        <Text
-          style={[
-            styles.modeButtonText,
-            isDrawingMode && styles.activeModeButtonText,
-          ]}
-        >
-          Çizim
-        </Text>
+        <Ionicons name="brush" size={22} color={isDrawingMode ? "#FFFFFF" : "#666666"} />
+        <Text style={[styles.modeButtonText, isDrawingMode && styles.activeModeText]}>Çizim</Text>
       </TouchableOpacity>
-
+      
       <TouchableOpacity
-        style={[
-          styles.modeButton,
-          !isDrawingMode && styles.activeModeButton,
-        ]}
+        style={[styles.modeButton, !isDrawingMode && styles.activeModeButton]}
         onPress={() => setIsDrawingMode(false)}
       >
-        <Text
-          style={[
-            styles.modeButtonText,
-            !isDrawingMode && styles.activeModeButtonText,
-          ]}
-        >
-          Gezinme
-        </Text>
+        <Ionicons name="hand" size={22} color={!isDrawingMode ? "#FFFFFF" : "#666666"} />
+        <Text style={[styles.modeButtonText, !isDrawingMode && styles.activeModeText]}>Gezinti</Text>
       </TouchableOpacity>
-
+      
       <TouchableOpacity style={styles.resetButton} onPress={resetView}>
-        <Text style={styles.resetButtonText}>Sıfırla</Text>
+        <Ionicons name="refresh" size={22} color="#FFFFFF" />
       </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  modeToggle: {
+  container: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    zIndex: 10,
     flexDirection: 'row',
-    justifyContent: 'center',
-    padding: 8,
-    backgroundColor: '#E8F4FF',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
   },
   modeButton: {
-    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
-    marginHorizontal: 5,
-    borderRadius: 15,
-    backgroundColor: '#D0E6FF',
+    paddingVertical: 8,
+    borderRadius: 16,
   },
   activeModeButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#4CAF50',
   },
   modeButtonText: {
-    color: '#555',
-    fontWeight: '600',
+    fontFamily: 'ComicNeue-Bold',
+    fontSize: 14,
+    color: '#666666',
+    marginLeft: 5,
   },
-  activeModeButtonText: {
-    color: 'white',
-  },
-  resetButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    marginHorizontal: 5,
-    borderRadius: 15,
-    backgroundColor: '#FFE0E0',
+  activeModeText: {
+    color: '#FFFFFF',
   },
   resetButtonText: {
     color: '#E64A19',
     fontWeight: '600',
+    textAlign: 'center',
   },
 });
 

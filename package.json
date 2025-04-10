@@ -11,7 +11,10 @@
   },
   "dependencies": {
     "expo": "~52.0.43",
+    "expo-file-system": "^18.0.12",
+    "expo-linear-gradient": "^14.0.2",
     "expo-media-library": "^17.0.6",
+    "expo-screen-orientation": "^8.0.4",
     "expo-sharing": "^13.0.1",
     "expo-status-bar": "~2.0.1",
     "metro-react-native-babel-preset": "^0.77.0",
