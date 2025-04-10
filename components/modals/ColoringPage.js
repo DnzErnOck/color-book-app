@@ -196,7 +196,7 @@ const ColoringPage = ({ image, onGoBack, onSave }) => {
   };
 
   // For debugging: force display a test image if the provided one fails
-  const imageSource = image && image.fullSize ? image.fullSize : require('../../assets/images/test-coloring-page.png');
+  const imageSource = image && image.source ? image.source : require('../../assets/images/test-coloring-page.png');
 
   return (
     <SafeAreaView style={styles.container}>
