@@ -10,7 +10,7 @@ const BASIC_SVG = `
 `;
 
 // Cartoon cat SVG for animal category
-const CAT_SVG = `
+/* const CAT_SVG = `
 <svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
   <!-- Cat body -->
   <ellipse cx="400" cy="350" rx="180" ry="160" fill="none" stroke="black" stroke-width="3" />
@@ -45,7 +45,37 @@ const CAT_SVG = `
   <ellipse cx="320" cy="500" rx="40" ry="30" fill="none" stroke="black" stroke-width="3" />
   <ellipse cx="480" cy="500" rx="40" ry="30" fill="none" stroke="black" stroke-width="3" />
 </svg>
-`;
+`; */
+
+const CAT_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" stroke="black" stroke-width="16">
+<!-- Gövde -->
+<ellipse cx="256" cy="256" rx="160" ry="100" fill="white" stroke="black" />
+ 
+  <!-- Kuyruk -->
+<path d="M96,256 L32,192 L32,320 Z" fill="white" stroke="black" />
+ 
+  <!-- Sırt yüzgeci -->
+<path d="M220,156 Q256,100 292,156" fill="white" stroke="black" />
+ 
+  <!-- Alt yüzgeç -->
+<path d="M220,356 Q256,400 292,356" fill="white" stroke="black" />
+ 
+  <!-- Yan yüzgeç -->
+<path d="M180,256 Q160,290 180,300" fill="white" stroke="black" />
+ 
+  <!-- Göz -->
+<circle cx="360" cy="230" r="14" fill="white" stroke="black" />
+<circle cx="360" cy="230" r="6" fill="black" />
+ 
+  <!-- Ağız -->
+<path d="M416 256 Q428 260 440 256" stroke="black" fill="none" />
+ 
+  <!-- Solungaç çizgisi -->
+<path d="M310,190 Q300,256 310,322" stroke="black" fill="none" />
+</svg>`;
+
+ 
 
 // Cartoon dog SVG for animal category
 const DOG_SVG = `
