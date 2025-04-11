@@ -16,7 +16,6 @@ import * as MediaLibrary from 'expo-media-library';
 import ViewShot from 'react-native-view-shot';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Sharing from 'expo-sharing';
-import { useFonts } from 'expo-font';
 import * as ScreenOrientation from 'expo-screen-orientation';
 
 // Constants
@@ -38,6 +37,8 @@ import BottomToolbar from './components/BottomToolbar';
 import MenuModal from './components/modals/MenuModal';
 import CategorySelector from './components/modals/CategorySelector';
 import ImageGrid from './components/modals/ImageGrid';
+import { useFonts } from 'expo-font';
+
 
 // Get screen dimensions
 const windowWidth = Dimensions.get('window').width;
@@ -54,8 +55,7 @@ const App = () => {
       ScreenOrientation.unlockAsync();
     };
   }, []);
-
-  // Load custom fonts
+  
   const [fontsLoaded] = useFonts({
     'ComicNeue-Bold': require('./assets/fonts/ComicNeue-Bold.ttf'),
     'ComicNeue-Regular': require('./assets/fonts/ComicNeue-Regular.ttf'),

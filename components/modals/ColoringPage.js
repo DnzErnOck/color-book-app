@@ -229,12 +229,12 @@ const ColoringPage = ({ image, onGoBack, onSave }) => {
           onTouchEnd={handleTouchEnd}
         >
           {/* Display fallback text if image is missing */}
-          {!imageLoaded && !image?.fullSize && (
+         {/*  {!imageLoaded && !image?.fullSize && (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>No image selected or image failed to load</Text>
               <Text style={styles.errorSubtext}>Please go back and select another image</Text>
             </View>
-          )}
+          )} */}
           
           {/* The coloring image */}
           <Image 
