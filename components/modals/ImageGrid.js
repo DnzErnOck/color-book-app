@@ -46,8 +46,21 @@ const ImageGrid = ({ category, images, onGoBack }) => {
   };
 
   // Handle image selection
+  // Handle image selection (modify this in ImageGrid.js)
   const handleSelectImage = (image) => {
-    setSelectedImage(image);
+    // Create a properly formatted image object with SVG data
+    if (image.svgContent) {
+      const svgUri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(image.svgContent)}`;
+      const formattedImage = {
+        ...image,
+        source: { uri: svgUri },
+        fullSize: svgUri
+      };
+      setSelectedImage(formattedImage);
+    } else {
+      // For non-SVG images, pass as is
+      setSelectedImage(image);
+    }
   };
 
   // Handle save coloring
@@ -78,6 +91,7 @@ const ImageGrid = ({ category, images, onGoBack }) => {
         onGoBack={() => setSelectedImage(null)}
         onSave={handleSaveColoring}
       />
+      
     );
   }
 

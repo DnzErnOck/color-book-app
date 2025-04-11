@@ -1,22 +1,19 @@
 // src/components/ColoringCanvas.js
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Image, Dimensions, TouchableOpacity, Text } from 'react-native';
-import { PanGestureHandler, PinchGestureHandler, State } from 'react-native-gesture-handler';
-import Svg, { Path, G } from 'react-native-svg';
-import Animated, { 
-  useAnimatedGestureHandler,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  runOnJS
-} from 'react-native-reanimated';
-import { createSvgPath } from '../utils/drawingUtils';
-
-const windowWidth = Dimensions.get('window').width;
-const windowHeight = Dimensions.get('window').height;
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  View, 
+  StyleSheet, 
+  PanResponder, 
+  Animated,
+  Image,
+  Dimensions
+} from 'react-native';
+import { Svg, Path, SvgXml } from 'react-native-svg';
+import { GestureHandlerRootView, PinchGestureHandler, PanGestureHandler, State } from 'react-native-gesture-handler';
 
 const ColoringCanvas = ({
   isDrawingMode,
+  setIsDrawingMode,
   scale,
   setScale,
   translateX,
@@ -45,252 +42,215 @@ const ColoringCanvas = ({
   addNewPath,
   currentPoints
 }) => {
-  const [internalDrawingMode, setInternalDrawingMode] = useState(isDrawingMode);
+  const [svgContent, setSvgContent] = useState(null);
+  const [dimensions, setDimensions] = useState({ width: '100%', height: '100%' });
   
+  // Load SVG content
   useEffect(() => {
-    setInternalDrawingMode(isDrawingMode);
-  }, [isDrawingMode]);
-  
-  const [viewWidth, setViewWidth] = useState(windowWidth - 88); // Adjusted for tool panel
-  const [viewHeight, setViewHeight] = useState(windowHeight - 100); // Adjusted for header/toolbar
-  
-  const pressure = useSharedValue(1);
-  const initialFocalX = useSharedValue(0);
-  const initialFocalY = useSharedValue(0);
-  const lastTouch = useSharedValue({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const resetViewWithDelay = () => {
-      setScale(1);
-      setTranslateX(0);
-      setTranslateY(0);
+    if (selectedImage && selectedImage.svgContent) {
+      setSvgContent(selectedImage.svgContent);
       
-      setTimeout(() => {
-        const imageAspectRatio = selectedImage.aspectRatio || 1;
-        const viewAspectRatio = viewWidth / viewHeight;
-        let newScale = 1;
-        
-        if (imageAspectRatio > viewAspectRatio) {
-          newScale = 0.9;
-        } else {
-          newScale = 0.9;
+      // Extract width and height from SVG if available
+      const widthMatch = selectedImage.svgContent.match(/width="([^"]+)"/);
+      const heightMatch = selectedImage.svgContent.match(/height="([^"]+)"/);
+      const viewBoxMatch = selectedImage.svgContent.match(/viewBox="([^"]+)"/);
+      
+      if (viewBoxMatch) {
+        const viewBox = viewBoxMatch[1].split(' ');
+        if (viewBox.length === 4) {
+          setDimensions({
+            width: parseInt(viewBox[2]),
+            height: parseInt(viewBox[3])
+          });
         }
-        
-        setScale(newScale);
-      }, 100);
-    };
-    
-    resetViewWithDelay();
-  }, [selectedImage, viewWidth, viewHeight]);
+      } else if (widthMatch && heightMatch) {
+        setDimensions({
+          width: parseInt(widthMatch[1]),
+          height: parseInt(heightMatch[1])
+        });
+      }
+    }
+  }, [selectedImage]);
 
-  const getCanvasCoordinates = (screenX, screenY) => {
-    return {
-      x: (screenX - translateX) / scale,
-      y: (screenY - translateY) / scale
-    };
+  // Pan gesture handler for navigation mode
+  const panRef = useRef();
+  const pinchRef = useRef();
+  
+  const onPanGestureEvent = Animated.event(
+    [{ nativeEvent: { translationX: baseTranslateX, translationY: baseTranslateY } }],
+    { useNativeDriver: true }
+  );
+  
+  const onPanHandlerStateChange = (event) => {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      // Update the offset for the next pan gesture
+      setTranslateX(translateX + event.nativeEvent.translationX);
+      setTranslateY(translateY + event.nativeEvent.translationY);
+      baseTranslateX.setValue(0);
+      baseTranslateY.setValue(0);
+    }
   };
-
-  const onDrawGestureEvent = useAnimatedGestureHandler({
-    onStart: (event) => {
-      if (!internalDrawingMode) return;
+  
+  const onPinchGestureEvent = Animated.event(
+    [{ nativeEvent: { scale: pinchScale } }],
+    { useNativeDriver: true }
+  );
+  
+  const onPinchHandlerStateChange = (event) => {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      setScale(scale * event.nativeEvent.scale);
+      pinchScale.setValue(1);
+    }
+  };
+  
+  // For drawing functionality
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => isDrawingMode,
+    onMoveShouldSetPanResponder: () => isDrawingMode,
+    onPanResponderGrant: (evt, gestureState) => {
+      if (!isDrawingMode) return;
       
-      pressure.value = event.pressure || 1;
-      const adjustedPressure = 1 + (pressure.value - 1) * brushPressureEffect;
+      const { locationX, locationY } = evt.nativeEvent;
       
-      lastTouch.value = { x: event.x, y: event.y };
+      // Calculate pressure effect for realistic brush strokes
+      const pressure = brushPressureEffect > 0 ? 
+        Math.random() * brushPressureEffect + (1 - brushPressureEffect) : 1;
       
-      const canvasPoint = {
-        x: (event.x - translateX) / scale,
-        y: (event.y - translateY) / scale,
-        pressure: adjustedPressure
-      };
+      const actualBrushSize = brushSize * pressure;
       
-      const effectiveColor = isEraser ? 'transparent' : selectedColor;
-      const effectiveWidth = brushSize * adjustedPressure;
-      
+      // Start a new path
       const newPath = {
-        id: Date.now().toString(),
-        color: effectiveColor,
-        width: effectiveWidth,
+        color: isEraser ? 'white' : selectedColor,
+        strokeWidth: actualBrushSize,
         opacity: brushOpacity,
         blur: brushBlur,
-        points: [canvasPoint],
-        isEraser: isEraser
+        d: `M ${locationX} ${locationY}`,
+        points: [{ x: locationX, y: locationY, pressure }]
       };
       
-      runOnJS(updatePathData)(newPath, [canvasPoint]);
+      updatePathData(newPath, [{ x: locationX, y: locationY, pressure }]);
     },
-    onActive: (event) => {
-      if (!internalDrawingMode || !currentPath) return;
+    onPanResponderMove: (evt, gestureState) => {
+      if (!isDrawingMode || !currentPath) return;
       
-      pressure.value = event.pressure || 1;
-      const adjustedPressure = 1 + (pressure.value - 1) * brushPressureEffect;
+      const { locationX, locationY } = evt.nativeEvent;
+      const lastPoint = currentPoints[currentPoints.length - 1];
       
-      const dx = event.x - lastTouch.value.x;
-      const dy = event.y - lastTouch.value.y;
+      // Skip if the movement is too small (prevents unnecessary points)
+      const dx = locationX - lastPoint.x;
+      const dy = locationY - lastPoint.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
       
-      if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && currentPoints.length > 0) {
-        return;
-      }
+      if (distance < 2) return;
       
-      lastTouch.value = { x: event.x, y: event.y };
+      // Calculate pressure effect
+      const pressure = brushPressureEffect > 0 ? 
+        Math.random() * brushPressureEffect + (1 - brushPressureEffect) : 1;
       
-      const canvasPoint = {
-        x: (event.x - translateX) / scale,
-        y: (event.y - translateY) / scale,
-        pressure: adjustedPressure
-      };
+      const newPoints = [...currentPoints, { x: locationX, y: locationY, pressure }];
       
-      const updatedPoints = [...currentPoints, canvasPoint];
+      // Update the path data with the new point
+      let pathData = currentPath.d;
+      pathData += ` L ${locationX} ${locationY}`;
+      
       const updatedPath = {
         ...currentPath,
-        points: updatedPoints
+        d: pathData,
+        points: newPoints
       };
       
-      runOnJS(updatePathData)(updatedPath, updatedPoints);
+      updatePathData(updatedPath, newPoints);
     },
-    onEnd: () => {
-      if (!internalDrawingMode || !currentPath) return;
-      runOnJS(addNewPath)(currentPath);
-      runOnJS(updatePathData)(null, []);
+    onPanResponderRelease: () => {
+      if (!isDrawingMode || !currentPath) return;
+      
+      // Add the completed path to paths array
+      addNewPath(currentPath);
+      
+      // Reset current path
+      updatePathData(null, []);
     }
   });
-
-  const onPanGestureEvent = useAnimatedGestureHandler({
-    onStart: (event, ctx) => {
-      if (internalDrawingMode) return;
-      ctx.startX = translateX;
-      ctx.startY = translateY;
-      runOnJS(setIsPanning)(true);
-    },
-    onActive: (event, ctx) => {
-      if (internalDrawingMode) return;
-      
-      const maxTranslateX = viewWidth * scale * 0.5;
-      const maxTranslateY = viewHeight * scale * 0.5;
-      
-      const newTranslateX = Math.max(-maxTranslateX, Math.min(maxTranslateX, ctx.startX + event.translationX));
-      const newTranslateY = Math.max(-maxTranslateY, Math.min(maxTranslateY, ctx.startY + event.translationY));
-      
-      runOnJS(setTranslateX)(newTranslateX);
-      runOnJS(setTranslateY)(newTranslateY);
-    },
-    onEnd: () => {
-      if (internalDrawingMode) return;
-      runOnJS(setIsPanning)(false);
-    }
-  });
-
-  const onPinchGestureEvent = useAnimatedGestureHandler({
-    onStart: (event, ctx) => {
-      if (internalDrawingMode) return;
-      ctx.startScale = scale;
-      initialFocalX.value = event.focalX;
-      initialFocalY.value = event.focalY;
-      runOnJS(setIsPinching)(true);
-    },
-    onActive: (event, ctx) => {
-      if (internalDrawingMode) return;
-      
-      const newScale = Math.max(0.5, Math.min(8, ctx.startScale * event.scale));
-      
-      const focalX = (initialFocalX.value - translateX) / scale;
-      const focalY = (initialFocalY.value - translateY) / scale;
-      
-      const newTranslateX = initialFocalX.value - focalX * newScale;
-      const newTranslateY = initialFocalY.value - focalY * newScale;
-      
-      runOnJS(setScale)(newScale);
-      runOnJS(setTranslateX)(newTranslateX);
-      runOnJS(setTranslateY)(newTranslateY);
-    },
-    onEnd: () => {
-      if (internalDrawingMode) return;
-      runOnJS(setIsPinching)(false);
-    }
-  });
-
+  
+  // Compose transforms for pan and zoom
+  const animatedStyle = {
+    transform: [
+      { translateX: Animated.add(baseTranslateX, new Animated.Value(translateX)) },
+      { translateY: Animated.add(baseTranslateY, new Animated.Value(translateY)) },
+      { scale: Animated.multiply(baseScale, pinchScale) }
+    ]
+  };
+  
   return (
-    <View 
-      style={styles.container}
-      onLayout={(event) => {
-        const { width, height } = event.nativeEvent.layout;
-        setViewWidth(width);
-        setViewHeight(height);
-      }}
-    >
+    <GestureHandlerRootView style={styles.container}>
       <PinchGestureHandler
+        ref={pinchRef}
         onGestureEvent={onPinchGestureEvent}
-        enabled={!internalDrawingMode}
+        onHandlerStateChange={onPinchHandlerStateChange}
+        enabled={!isDrawingMode}
       >
-        <Animated.View style={styles.pinchContainer}>
+        <Animated.View style={styles.container}>
           <PanGestureHandler
-            onGestureEvent={internalDrawingMode ? onDrawGestureEvent : onPanGestureEvent}
-            minDist={internalDrawingMode ? 0 : 10}
+            ref={panRef}
+            onGestureEvent={onPanGestureEvent}
+            onHandlerStateChange={onPanHandlerStateChange}
+            enabled={!isDrawingMode}
+            simultaneousHandlers={pinchRef}
           >
             <Animated.View 
-              style={[
-                styles.drawContainer,
-                {
-                  transform: [
-                    { translateX },
-                    { translateY },
-                    { scale }
-                  ]
-                }
-              ]}
-              collapsable={false}
-              ref={viewShotRef}
+              style={[styles.canvas, animatedStyle]} 
+              {...(isDrawingMode ? panResponder.panHandlers : {})}
             >
-              <Image
-                source={selectedImage.source}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  resizeMode: 'contain'
-                }}
-              />
-              
-              <Svg
-                style={StyleSheet.absoluteFill}
-                width="100%"
-                height="100%"
-                preserveAspectRatio="xMidYMid meet"
-              >
-                <G>
-                  {paths.map((path) => (
-                    <Path
-                      key={path.id}
-                      d={createSvgPath(path.points)}
-                      stroke={path.isEraser ? 'white' : path.color}
-                      strokeWidth={path.width}
-                      strokeOpacity={path.opacity}
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      compositeOperation={path.isEraser ? "destination-out" : "source-over"}
+              <View ref={viewShotRef} collapsable={false} style={styles.drawingContainer}>
+                {/* SVG Base Image */}
+                {svgContent && (
+                  <View style={styles.svgContainer}>
+                    <SvgXml 
+                      xml={svgContent} 
+                      width="100%" 
+                      height="100%" 
+                      style={styles.svgOutline}
                     />
-                  ))}
-                  
-                  {currentPath && (
-                    <Path
-                      d={createSvgPath(currentPath.points)}
-                      stroke={currentPath.isEraser ? 'white' : currentPath.color}
-                      strokeWidth={currentPath.width}
-                      strokeOpacity={currentPath.opacity}
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      compositeOperation={currentPath.isEraser ? "destination-out" : "source-over"}
-                    />
-                  )}
-                </G>
-              </Svg>
+                  </View>
+                )}
+                
+                {/* Drawing Layer */}
+                <View style={StyleSheet.absoluteFill}>
+                  <Svg style={StyleSheet.absoluteFill}>
+                    {/* Completed paths */}
+                    {paths.map((path, index) => (
+                      <Path
+                        key={`path-${index}`}
+                        d={path.d}
+                        stroke={path.color}
+                        strokeWidth={path.strokeWidth}
+                        strokeOpacity={path.opacity}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        fill="none"
+                      />
+                    ))}
+                    
+                    {/* Current path */}
+                    {currentPath && (
+                      <Path
+                        d={currentPath.d}
+                        stroke={currentPath.color}
+                        strokeWidth={currentPath.strokeWidth}
+                        strokeOpacity={currentPath.opacity}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        fill="none"
+                      />
+                    )}
+                  </Svg>
+                </View>
+              </View>
             </Animated.View>
           </PanGestureHandler>
         </Animated.View>
       </PinchGestureHandler>
-    </View>
+    </GestureHandlerRootView>
   );
 };
 
@@ -298,22 +258,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     overflow: 'hidden',
-    backgroundColor: '#ECEFF1',
-    borderRadius: 16,
-    margin: 8,
-    borderWidth: 2,
-    borderColor: '#BBDEFB',
   },
-  pinchContainer: {
+  canvas: {
     flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  drawContainer: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
     backgroundColor: '#FFFFFF',
+  },
+  drawingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  svgContainer: {
+    width: '90%',
+    height: '90%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  svgOutline: {
+    backgroundColor: 'transparent',
   }
 });
 

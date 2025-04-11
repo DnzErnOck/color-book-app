@@ -1,12 +1,13 @@
 // src/components/modals/ColoringPage.js
 import React, { useState, useRef, useEffect } from 'react';
+import { SvgXml } from 'react-native-svg';
 import { 
   View, 
   StyleSheet, 
   TouchableOpacity, 
   Image, 
   SafeAreaView,
-  Text, // Text bileşenini ekledim
+  Text,
   Dimensions,
   Alert
 } from 'react-native';
@@ -43,10 +44,26 @@ const ColoringPage = ({ image, onGoBack, onSave }) => {
 
   // Use a default image if the passed image is not valid
   useEffect(() => {
-    if (!image || !image.fullSize) {
-      console.warn("Image not properly provided! Using fallback.");
-      // You can add a fallback image here if needed
+    /* console.log('Image received:', image);
+    
+    if (image?.svgContent) {
+      console.log('SVG content exists, length:', image.svgContent.length);
     }
+    
+    if (image?.source) {
+      console.log('Source exists:', typeof image.source, 
+                  image.source.uri ? 'Has URI' : 'No URI');
+    }
+    
+    // Test encoding the SVG
+    if (image?.svgContent) {
+      try {
+        const testUri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(image.svgContent)}`;
+        console.log('Test URI created successfully, length:', testUri.length);
+      } catch (error) {
+        console.error('Error encoding SVG:', error);
+      }
+    } */
   }, [image]);
 
   // Handle tool selection
@@ -196,7 +213,11 @@ const ColoringPage = ({ image, onGoBack, onSave }) => {
   };
 
   // For debugging: force display a test image if the provided one fails
-  const imageSource = image && image.source ? image.source : require('../../assets/images/test-coloring-page.png');
+  const imageSource = image && (image.source || (image.svgContent ? { 
+    uri: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(image.svgContent)}` 
+  } : null)) ? image.source || { 
+    uri: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(image.svgContent)}` 
+  } : require('../../assets/images/test-coloring-page.png');
 
   return (
     <SafeAreaView style={styles.container}>
@@ -229,21 +250,31 @@ const ColoringPage = ({ image, onGoBack, onSave }) => {
           onTouchEnd={handleTouchEnd}
         >
           {/* Display fallback text if image is missing */}
-         {/*  {!imageLoaded && !image?.fullSize && (
+          {!imageLoaded && !image?.fullSize && (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>No image selected or image failed to load</Text>
               <Text style={styles.errorSubtext}>Please go back and select another image</Text>
             </View>
-          )} */}
+          )}
           
           {/* The coloring image */}
-          <Image 
-            source={imageSource}
-            style={styles.coloringImage} 
-            onLoad={handleImageLoad}
-            onError={handleImageError}
-            resizeMode="contain"
-          />
+          {image?.svgContent ? (
+            <View style={styles.coloringImage}>
+              <SvgXml
+                xml={image.svgContent}
+                width="100%"
+                height="100%"
+              />
+            </View>
+          ) : (
+            <Image 
+              source={imageSource}
+              style={styles.coloringImage} 
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+              resizeMode="contain"
+            />
+          )}
           
           {/* SVG drawing layer */}
           <Svg style={StyleSheet.absoluteFill}>
